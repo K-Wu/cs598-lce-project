@@ -1,0 +1,6 @@
+[submodule "3rdparty/llvm-project"]
+	path = 3rdparty/llvm-project
+	url = https://github.com/llvm/llvm-project.git
+[submodule "3rdparty/torch-mlir"]
+	path = 3rdparty/torch-mlir
+	url = https://github.com/llvm/torch-mlir
