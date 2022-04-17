@@ -1,124 +1,98 @@
 module attributes {torch.debug_module_name = "DftModule"} {
-  func @forward(%arg0: !torch.vtensor<[?],f32>) -> !torch.vtensor<[?],f32> {
-    %float-6.283190e00 = torch.constant.float -6.2831853071795862
-    %int0 = torch.constant.int 0
-    %int1 = torch.constant.int 1
-    %c1_i64 = arith.constant 1 : i64
+  func @forward(%arg0: tensor<32xf32>) -> tensor<32xf32> {
+    %cst = arith.constant -6.2831853071795862 : f64
+    %c32_i64 = arith.constant 32 : i64
     %c0_i64 = arith.constant 0 : i64
+    %c1_i64 = arith.constant 1 : i64
     %c0 = arith.constant 0 : index
     %c1 = arith.constant 1 : index
-    %cst = arith.constant 0.000000e+00 : f32
-    %0 = torch_c.to_builtin_tensor %arg0 : !torch.vtensor<[?],f32> -> tensor<?xf32>
-    %1 = bufferization.to_memref %0 : memref<?xf32>
-    %2 = torch_c.to_f64 %float-6.283190e00
-    %3 = torch_c.to_i64 %int0
-    %4 = arith.addi %3, %c1_i64 : i64
-    %5 = arith.cmpi sge, %3, %c0_i64 : i64
-    %6 = arith.select %5, %3, %4 : i64
-    %7 = arith.cmpi sge, %6, %c0_i64 : i64
-    cf.assert %7, "dim must be greater or equal to zero"
-    %8 = arith.cmpi slt, %6, %c1_i64 : i64
-    cf.assert %8, "dim must be smaller than inputRank"
-    %9 = arith.index_cast %6 : i64 to index
-    %10 = tensor.dim %0, %9 : tensor<?xf32>
-    %11 = arith.index_cast %10 : index to i64
-    %12 = torch_c.from_i64 %11
-    %13 = torch_c.to_i64 %int0
-    %14 = torch_c.to_i64 %int1
-    %15 = arith.sitofp %13 : i64 to f32
-    %16 = arith.sitofp %11 : i64 to f32
-    %17 = arith.sitofp %14 : i64 to f32
-    %18 = arith.subf %16, %15 : f32
-    %19 = arith.divf %18, %17 : f32
-    %20 = math.ceil %19 : f32
-    %21 = arith.fptoui %20 : f32 to i64
-    %22 = arith.index_cast %21 : i64 to index
-    %23 = memref.alloc(%22) : memref<?xf32>
-    affine.for %arg1 = 0 to %22 {
-      %55 = arith.index_cast %arg1 : index to i64
-      %56 = arith.sitofp %55 : i64 to f32
-      %57 = arith.mulf %17, %56 : f32
-      %58 = arith.addf %15, %57 : f32
-      affine.store %58, %23[%arg1] : memref<?xf32>
+    %c32 = arith.constant 32 : index
+    %c32_i64_0 = arith.constant 32 : i64
+    %cst_1 = arith.constant 0.000000e+00 : f32
+    %0 = memref.alloc() {alignment = 128 : i64} : memref<32x1xf32>
+    %1 = bufferization.to_memref %arg0 : memref<32xf32>
+    %2 = arith.sitofp %c0_i64 : i64 to f32
+    %3 = arith.sitofp %c32_i64 : i64 to f32
+    %4 = arith.sitofp %c1_i64 : i64 to f32
+    %5 = arith.subf %3, %2 : f32
+    %6 = arith.divf %5, %4 : f32
+    %7 = math.ceil %6 : f32
+    %8 = arith.fptoui %7 : f32 to i64
+    %9 = arith.index_cast %8 : i64 to index
+    %10 = memref.alloc(%9) {alignment = 128 : i64} : memref<?xf32>
+    affine.for %arg1 = 0 to %9 {
+      %31 = arith.index_cast %arg1 : index to i64
+      %32 = arith.sitofp %31 : i64 to f32
+      %33 = arith.mulf %4, %32 : f32
+      %34 = arith.addf %2, %33 : f32
+      affine.store %34, %10[%arg1] : memref<?xf32>
     }
-    %24 = bufferization.to_tensor %23 : memref<?xf32>
-    %25 = torch_c.to_i64 %12
-    %26 = torch_c.to_i64 %int1
-    %27 = memref.expand_shape %23 [[0, 1]] : memref<?xf32> into memref<?x1xf32>
-    %28 = bufferization.to_tensor %27 : memref<?x1xf32>
-    %29 = tensor.dim %28, %c0 : tensor<?x1xf32>
-    %30 = memref.alloc(%29) : memref<?x1xf32>
-    %31 = memref.dim %27, %c0 : memref<?x1xf32>
-    affine.for %arg1 = 0 to %31 {
+    %11 = bufferization.to_tensor %10 : memref<?xf32>
+    %12 = tensor.cast %11 : tensor<?xf32> to tensor<32xf32>
+    %13 = tensor.expand_shape %12 [[0, 1]] : tensor<32xf32> into tensor<32x1xf32>
+    %14 = bufferization.to_memref %13 : memref<32x1xf32>
+    affine.for %arg1 = 0 to 32 {
       affine.for %arg2 = 0 to 1 {
-        %55 = affine.load %27[%arg1, %c0] : memref<?x1xf32>
-        %56 = arith.truncf %2 : f64 to f32
-        %57 = arith.mulf %55, %56 : f32
-        affine.store %57, %30[%arg1, %arg2] : memref<?x1xf32>
+        %31 = affine.load %14[%arg1, %c0] : memref<32x1xf32>
+        %32 = arith.truncf %cst : f64 to f32
+        %33 = arith.mulf %31, %32 : f32
+        affine.store %33, %0[%arg1, %arg2] : memref<32x1xf32>
       }
     }
-    %32 = bufferization.to_tensor %30 : memref<?x1xf32>
-    %33 = tensor.dim %32, %c0 : tensor<?x1xf32>
-    %34 = tensor.dim %24, %c0 : tensor<?xf32>
-    %35 = memref.alloc(%33, %34) : memref<?x?xf32>
-    affine.for %arg1 = 0 to %29 {
-      affine.for %arg2 = 0 to %22 {
-        %55 = affine.load %30[%arg1, %c0] : memref<?x1xf32>
-        %56 = affine.load %23[%arg2] : memref<?xf32>
-        %57 = arith.mulf %55, %56 : f32
-        affine.store %57, %35[%arg1, %arg2] : memref<?x?xf32>
+    %15 = tensor.dim %11, %c0 : tensor<?xf32>
+    %16 = memref.alloc(%15) {alignment = 128 : i64} : memref<32x?xf32>
+    affine.for %arg1 = 0 to 32 {
+      affine.for %arg2 = 0 to %9 {
+        %31 = affine.load %0[%arg1, %c0] : memref<32x1xf32>
+        %32 = affine.load %10[%arg2] : memref<?xf32>
+        %33 = arith.mulf %31, %32 : f32
+        affine.store %33, %16[%arg1, %arg2] : memref<32x?xf32>
       }
     }
-    %36 = bufferization.to_tensor %35 : memref<?x?xf32>
-    %37 = tensor.dim %36, %c0 : tensor<?x?xf32>
-    %38 = tensor.dim %36, %c1 : tensor<?x?xf32>
-    %39 = memref.alloc(%37, %38) : memref<?x?xf32>
-    affine.for %arg1 = 0 to %33 {
-      affine.for %arg2 = 0 to %34 {
-        %55 = affine.load %35[%arg1, %arg2] : memref<?x?xf32>
-        %56 = arith.sitofp %11 : i64 to f32
-        %57 = arith.divf %55, %56 : f32
-        affine.store %57, %39[%arg1, %arg2] : memref<?x?xf32>
+    %17 = bufferization.to_tensor %16 : memref<32x?xf32>
+    %18 = tensor.dim %17, %c1 : tensor<32x?xf32>
+    %19 = memref.alloc(%18) {alignment = 128 : i64} : memref<32x?xf32>
+    affine.for %arg1 = 0 to 32 {
+      affine.for %arg2 = 0 to %15 {
+        %31 = affine.load %16[%arg1, %arg2] : memref<32x?xf32>
+        %32 = arith.sitofp %c32_i64 : i64 to f32
+        %33 = arith.divf %31, %32 : f32
+        affine.store %33, %19[%arg1, %arg2] : memref<32x?xf32>
       }
     }
-    %40 = bufferization.to_tensor %39 : memref<?x?xf32>
-    %41 = tensor.dim %40, %c0 : tensor<?x?xf32>
-    %42 = tensor.dim %40, %c1 : tensor<?x?xf32>
-    %43 = memref.alloc(%41, %42) : memref<?x?xf32>
-    affine.for %arg1 = 0 to %37 {
-      affine.for %arg2 = 0 to %38 {
-        %55 = affine.load %39[%arg1, %arg2] : memref<?x?xf32>
-        %56 = math.exp %55 : f32
-        affine.store %56, %43[%arg1, %arg2] : memref<?x?xf32>
+    %20 = bufferization.to_tensor %19 : memref<32x?xf32>
+    %21 = tensor.dim %20, %c1 : tensor<32x?xf32>
+    %22 = memref.alloc(%21) {alignment = 128 : i64} : memref<32x?xf32>
+    affine.for %arg1 = 0 to 32 {
+      affine.for %arg2 = 0 to %18 {
+        %31 = affine.load %19[%arg1, %arg2] : memref<32x?xf32>
+        %32 = math.exp %31 : f32
+        affine.store %32, %22[%arg1, %arg2] : memref<32x?xf32>
       }
     }
-    %44 = bufferization.to_tensor %43 : memref<?x?xf32>
-    %45 = tensor.dim %44, %c0 : tensor<?x?xf32>
-    %46 = tensor.dim %44, %c1 : tensor<?x?xf32>
-    %47 = tensor.dim %0, %c0 : tensor<?xf32>
-    %48 = arith.index_cast %46 : index to i64
-    %49 = arith.index_cast %47 : index to i64
-    %50 = arith.cmpi eq, %48, %49 : i64
-    cf.assert %50, "mismatching contracting dimension"
-    %51 = memref.alloc(%45) : memref<?xf32>
-    affine.for %arg1 = 0 to %45 {
-      affine.store %cst, %51[%arg1] : memref<?xf32>
+    %23 = bufferization.to_tensor %22 : memref<32x?xf32>
+    %24 = tensor.dim %23, %c1 : tensor<32x?xf32>
+    %25 = arith.index_cast %24 : index to i64
+    %26 = arith.cmpi eq, %25, %c32_i64_0 : i64
+    %27 = memref.alloc(%c32) {alignment = 128 : i64} : memref<?xf32>
+    affine.for %arg1 = 0 to 32 {
+      affine.store %cst_1, %27[%arg1] : memref<?xf32>
     }
-    %52 = memref.alloc(%45) : memref<?xf32>
-    memref.copy %51, %52 : memref<?xf32> to memref<?xf32>
-    affine.for %arg1 = 0 to %41 {
-      affine.for %arg2 = 0 to %42 {
-        %55 = affine.load %43[%arg1, %arg2] : memref<?x?xf32>
-        %56 = affine.load %1[%arg2] : memref<?xf32>
-        %57 = affine.load %52[%arg1] : memref<?xf32>
-        %58 = arith.mulf %55, %56 : f32
-        %59 = arith.addf %57, %58 : f32
-        affine.store %59, %52[%arg1] : memref<?xf32>
+    %28 = memref.alloc(%c32) {alignment = 128 : i64} : memref<?xf32>
+    memref.copy %27, %28 : memref<?xf32> to memref<?xf32>
+    affine.for %arg1 = 0 to 32 {
+      affine.for %arg2 = 0 to %21 {
+        %31 = affine.load %22[%arg1, %arg2] : memref<32x?xf32>
+        %32 = affine.load %1[%arg2] : memref<32xf32>
+        %33 = affine.load %28[%arg1] : memref<?xf32>
+        %34 = arith.mulf %31, %32 : f32
+        %35 = arith.addf %33, %34 : f32
+        affine.store %35, %28[%arg1] : memref<?xf32>
       }
     }
-    %53 = bufferization.to_tensor %52 : memref<?xf32>
-    %54 = torch_c.from_builtin_tensor %53 : tensor<?xf32> -> !torch.vtensor<[?],f32>
-    return %54 : !torch.vtensor<[?],f32>
+    %29 = bufferization.to_tensor %28 : memref<?xf32>
+    %30 = tensor.cast %29 : tensor<?xf32> to tensor<32xf32>
+    return %30 : tensor<32xf32>
   }
 }
 

@@ -15,10 +15,47 @@ class DftModule(torch.nn.Module):
 
     def dft(self, x:torch.Tensor):
         N = x.shape[0]
-        n = torch.arange(N, dtype=torch.complex64)
+        n = torch.arange(N, dtype=torch.float32)
         k = n.reshape((N,1))
         M = torch.exp(-2 * np.pi * k * n / N)
-        return torch.matmul(M.type(torch.complex64), x.type(torch.complex64))
+        return torch.matmul(M.type(torch.float32), x.type(torch.float32))
+
+    @export
+    @annotate_args([
+        None,
+        ([32], torch.float32, True),
+    ])
+    def forward(self, x):
+        return self.dft(x)
+
+class FftModule(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    @staticmethod
+    def dft(x:torch.Tensor):
+        N = x.shape[0]
+        n = torch.arange(N, dtype=torch.float32)
+        k = n.reshape((N,1))
+        _M = np.pi * k * n / N
+        M = np.array([np.zeros(_M.shape), torch.exp(-2j * _M)])
+        return torch.matmul(M.type(torch.float32), x.type(torch.float32))
+
+    @staticmethod
+    def fft(x:torch.Tensor):
+        N = x.shape[0]
+
+        if N %2 > 0:
+            raise ValueError("must be a power of 2")
+        elif N <= 2:
+            return FftModule.dft(x)
+        else:
+            x_even = FftModule.fft(x[::2])
+            
+            x_odd = FftModule.fft(x[1::2])
+            terms = torch.exp(-2j * np.pi * torch.arange(N, dtype=torch.float32) / N) 
+            return torch.cat( [x_even + terms[:int(N/2)] * x_odd,
+                                x_even + terms[int(N/2):] * x_odd])
 
     @export
     @annotate_args([
@@ -26,7 +63,7 @@ class DftModule(torch.nn.Module):
         ([-1], torch.float32, True),
     ])
     def forward(self, x):
-        return self.dft(x)
+        return self.fft(x)
 
 BACKEND = RefBackendLinalgOnTensorsBackend()
 def compile_module(program: torch.nn.Module):
@@ -42,13 +79,21 @@ depends on the rebackend runtime.
     ## Import the TorchScript module into MLIR.
     mb = ModuleBuilder()
     mb.import_module(scripted._c, class_annotator)
-    ## Lower the MLIR from TorchScript to RefBackend, passing through linalg-on-tensors.
-    ### KWU: only keep the first pass
-    pm = PassManager.parse('torchscript-module-to-torch-backend-pipeline', mb.module.context)
+    passes = [
+        'torchscript-module-to-torch-backend-pipeline',
+        'builtin.func(convert-torch-to-linalg)',
+        'builtin.func(linalg-bufferize)',
+        # 'builtin.module(linalg-comprehensive-module-bufferize)',
+        # 'builtin.func(refback-munge-memref-copy)',
+        'builtin.module(func-bufferize)',
+        'builtin.module(buffer-results-to-out-params)',
+        'func.func(canonicalize)',
+        'builtin.func(convert-linalg-to-affine-loops)',
+        'builtin.func(convert-torch-to-std)',
+        'builtin.module(torch-func-backend-type-conversion)',
+    ]
+    pm = PassManager.parse(",".join(passes), mb.module.context)
     pm.run(mb.module)
-    ## Invoke RefBackend to compile to compiled artifact form.
-    ### KWU: return mb.module instead of the compiled one by BACKEND
-    return mb.module #BACKEND.compile(mb.module
+    return mb.module
 
-with open("dft.mlir", "w") as out:
-    out.write(str(compile_module(DftModule())))
+print(compile_module(DftModule()))
