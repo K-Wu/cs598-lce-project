@@ -81,16 +81,16 @@ depends on the rebackend runtime.
     mb.import_module(scripted._c, class_annotator)
     passes = [
         'torchscript-module-to-torch-backend-pipeline',
-        'builtin.func(convert-torch-to-linalg)',
-        'builtin.func(linalg-bufferize)',
-        # 'builtin.module(linalg-comprehensive-module-bufferize)',
-        # 'builtin.func(refback-munge-memref-copy)',
-        'builtin.module(func-bufferize)',
-        'builtin.module(buffer-results-to-out-params)',
-        'func.func(canonicalize)',
-        'builtin.func(convert-linalg-to-affine-loops)',
-        'builtin.func(convert-torch-to-std)',
+        'builtin.func(convert-torch-to-linalg,convert-torch-to-std,linalg-generalize-named-ops)',
         'builtin.module(torch-func-backend-type-conversion)',
+        # 'builtin.func(torch-refine-types,torch-finalizing-backend-type-conversion)',
+        # 'func.func(canonicalize)',
+        # 'builtin.func(linalg-bufferize)',
+        # 'builtin.module(func-bufferize,buffer-results-to-out-params)',
+        # 'func.func(canonicalize)',
+
+        # 'builtin.func(convert-linalg-to-affine-loops)',
+        # 'builtin.func(fold-memref-subview-ops,affine-loop-normalize,affine-simplify-structures)',
     ]
     pm = PassManager.parse(",".join(passes), mb.module.context)
     pm.run(mb.module)
