@@ -12,6 +12,7 @@ module attributes {torch.debug_module_name = "DftModule"} {
     %4 = memref.alloc() {alignment = 128 : i64} : memref<32x32xf32>
     %5 = memref.alloc() {alignment = 128 : i64} : memref<32xf32>
     %6 = memref.alloc() {alignment = 128 : i64} : memref<32xf32>
+    %8 = memref.alloc() {alignment = 128 : i64} : memref<32x1xf32>
     affine.for %arg2 = 0 to 32 {
       %10 = arith.index_cast %arg2 : index to i64
       %11 = arith.sitofp %10 : i64 to f32
@@ -19,7 +20,11 @@ module attributes {torch.debug_module_name = "DftModule"} {
       affine.store %12, %0[%arg2] : memref<32xf32>
     }
     //%7 = bufferization.to_tensor %0 : memref<32xf32>
-    %8 = memref.expand_shape %0 [[0, 1]] : memref<32xf32> into memref<32x1xf32>
+    //%8 = memref.expand_shape %0 [[0, 1]] : memref<32xf32> into memref<32x1xf32>
+    affine.for %arg2 = 0 to 32 {
+      %10 = affine.load %0[%arg2] : memref<32xf32>
+      affine.store %10, %8[%arg2, %c0] : memref<32x1xf32>
+    }
     affine.for %arg2 = 0 to 32 {
       %10 = affine.load %8[%arg2, %c0_2] : memref<32x1xf32>
       %11 = arith.truncf %cst : f64 to f32
